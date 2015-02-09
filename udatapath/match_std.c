@@ -34,7 +34,8 @@
 #include "lib/hash.h"
 #include "oflib/oxm-match.h"
 #include "match_std.h"
-
+#include <pcap.h>
+#include "packet.h"
 
 #include "vlog.h"
 #define LOG_MODULE VLM_flow_e
@@ -144,11 +145,19 @@ match_mask128(uint8_t *a, uint8_t *am, uint8_t *b) {
             match_mask64(a+8, am+8, b+8));
 }
 
+bool
+any_match(struct ofl_match_tlv *ofl_match_tlv, struct packet *pkt){
+
+    struct bpf_insn *instructions = (struct bpf_insn *) ofl_match_tlv->value;
+    return bpf_filter(instructions, pkt->buffer->data, pkt->buffer->size, pkt->buffer->size);
+}
+
 
 /* Returns true if the fields in *packet matches the flow entry in *flow_match */
 bool
-packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
+packet_match(struct ofl_match *flow_match, struct packet *fullpacket){
 
+    struct ofl_match *packet;
     struct ofl_match_tlv *f;
     struct ofl_match_tlv *packet_f;
     bool has_mask;
@@ -156,6 +165,9 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     int packet_header;
     uint8_t *flow_val, *flow_mask= NULL;
     uint8_t *packet_val;
+    bool match_result;
+
+    packet = &fullpacket->handle_std->match;
 
     if (flow_match->header.length == 0){
         return true;
@@ -169,6 +181,17 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
         field_len =  OXM_LENGTH(f->header);
         packet_header = f->header;
         flow_val = f->value;
+
+        /* Call any_match if the field is an any_match field */
+        if (f->header==OXM_OF_ANY_MATCH) {
+            match_result = any_match(f, fullpacket);
+            if (match_result == false){
+                return false;
+            } else {
+                continue;
+            }
+        }
+
         if (has_mask) {
             /* Clear the has_mask bit and divide the field_len by two in the packet field header */
             field_len /= 2;

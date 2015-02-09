@@ -134,6 +134,19 @@ ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value
 }
 
 void
+ofl_structs_match_put248(struct ofl_match *match, uint32_t header, char * value){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = 248;
+
+    m->header = header;
+    m->value = malloc(len);
+    memcpy(m->value, value, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += len + 4;
+
+}
+
+void
 ofl_structs_match_put64m(struct ofl_match *match, uint32_t header, uint64_t value, uint64_t mask){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint64_t);

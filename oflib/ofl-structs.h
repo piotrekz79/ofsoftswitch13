@@ -233,8 +233,15 @@ struct ofl_match {
     struct hmap match_fields;         /* Match fields. Contain OXM TLV's  */
 };
 
-struct ofl_match_tlv{
 
+struct bpf_insn {
+    uint16_t filter;	/* Actual filter */
+    uint8_t jt; 	/* Jump true */
+    uint8_t jf; 	/* Jump false */
+    uint32_t k; 	/* Generic multiuse field */
+};
+
+struct ofl_match_tlv{
     struct hmap_node hmap_node;
     uint32_t header;    /* TLV header */
     uint8_t *value;     /* TLV value */

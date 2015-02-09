@@ -34,6 +34,7 @@
 
 #include <stdbool.h>
 #include "oflib/ofl-structs.h"
+#include "packet.h"
 
 /****************************************************************************
  * Functions for comparing two extended match structures.
@@ -43,7 +44,10 @@ bool
 match_std_overlap(struct ofl_match *a, struct ofl_match *b);
 
 bool 
-packet_match(struct ofl_match *a, struct ofl_match *b);
+packet_match(struct ofl_match *a, struct packet *b);
+
+bool 
+any_match(struct ofl_match_tlv *a, struct packet *b);
 
 /* Returns true if match a matches match b, in a strict manner. */
 bool

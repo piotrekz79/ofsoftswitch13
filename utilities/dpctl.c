@@ -1556,6 +1556,15 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put16(m, OXM_OF_IPV6_EXTHDR, ext_hdr);
             continue;
         }
+        /* ANY MATCH */
+        if (strncmp(token, MATCH_ANY_MATCH KEY_VAL, strlen(MATCH_ANY_MATCH KEY_VAL)) == 0) {
+            uint64_t any_match;
+            if (sscanf(token, MATCH_ANY_MATCH KEY_VAL "0x%"SCNx64"", (&any_match)) != 1) {
+                ofp_fatal(0, "Error parsing %s: %s.", MATCH_ANY_MATCH, token);
+            }
+            else ofl_structs_match_put64(m, OXM_OF_ANY_MATCH, any_match);
+            continue;
+        }
         ofp_fatal(0, "Error parsing match arg: %s.", token);
     }
     
@@ -2754,6 +2763,7 @@ struct oxm_str_mapping oxm_str_map[] =
     { .name=MATCH_PBB_ISID, .oxm_id=OXM_OF_PBB_ISID },
     { .name=MATCH_TUNNEL_ID, .oxm_id=OXM_OF_TUNNEL_ID },
     { .name=MATCH_EXT_HDR, .oxm_id=OXM_OF_IPV6_EXTHDR },
+    { .name=MATCH_ANY_MATCH, .oxm_id=OXM_OF_ANY_MATCH },
   };
 
 static void
