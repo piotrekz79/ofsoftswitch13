@@ -720,6 +720,13 @@ oxm_put_64(struct ofpbuf *buf, uint32_t header, uint64_t value)
 }
 
 static void
+oxm_put_248(struct ofpbuf *buf, uint32_t header, uint8_t* value)
+{
+    oxm_put_header(buf, header);
+    ofpbuf_put(buf, value, 248);
+}
+
+static void
 oxm_put_64w(struct ofpbuf *buf, uint32_t header, uint64_t value, uint64_t mask)
 {
     oxm_put_header(buf, header);
@@ -874,6 +881,12 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                has_mask = true;
             }
             switch (length){
+		case (248): {
+                    uint8_t value[248];
+                    memcpy(value, oft->value, 248);
+                    oxm_put_248(buf, oft->header, value);
+                    break;
+		}
                 case (sizeof(uint8_t)):{
                     uint8_t value;
                     memcpy(&value, oft->value,sizeof(uint8_t));
