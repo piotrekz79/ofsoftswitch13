@@ -82,4 +82,10 @@ packet_destroy(struct packet *pkt);
 struct packet *
 packet_clone(struct packet *pkt);
 
+/* An extended packet structure that contains L1 information associated with the packet */
+struct packet_ext {
+    uint32_t		in_port;
+    struct packet 	*packet;
+};
+
 #endif /* PACKET_H */

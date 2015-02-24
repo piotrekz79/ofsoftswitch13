@@ -47,7 +47,7 @@ bool
 packet_match(struct ofl_match *a, struct packet *b);
 
 bool 
-any_match(struct ofl_match_tlv *a, struct packet *b);
+any_match(struct ofl_match_tlv *a, struct packet_ext *b);
 
 /* Returns true if match a matches match b, in a strict manner. */
 bool

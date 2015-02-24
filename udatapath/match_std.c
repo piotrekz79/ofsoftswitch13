@@ -146,10 +146,18 @@ match_mask128(uint8_t *a, uint8_t *am, uint8_t *b) {
 }
 
 bool
-any_match(struct ofl_match_tlv *ofl_match_tlv, struct packet *pkt){
+any_match(struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt){
 
+    uint32_t fullsize = sizeof(pkt->in_port) + pkt->packet->buffer->size;
     struct bpf_insn *instructions = (struct bpf_insn *) ofl_match_tlv->value;
-    return bpf_filter(instructions, pkt->buffer->data, pkt->buffer->size, pkt->buffer->size);
+
+    /* Create a linear array of the extended packet */
+    void * fullpacket = (void *) malloc(fullsize);
+    memcpy(fullpacket, &pkt->in_port, sizeof(pkt->in_port));
+    memcpy(fullpacket + sizeof(pkt->in_port), pkt->packet->buffer->data, pkt->packet->buffer->size);
+
+    /* Call libpcap's bpf_filter */
+    return bpf_filter(instructions, fullpacket, fullsize, fullsize);
 }
 
 
@@ -166,8 +174,14 @@ packet_match(struct ofl_match *flow_match, struct packet *fullpacket){
     uint8_t *flow_val, *flow_mask= NULL;
     uint8_t *packet_val;
     bool match_result;
+    struct packet_ext *packet_ext;
 
     packet = &fullpacket->handle_std->match;
+
+    /* Create packet_ext */
+    packet_ext = (struct packet_ext *) malloc(sizeof(struct packet_ext));
+    packet_ext->in_port = fullpacket->in_port;
+    packet_ext->packet = fullpacket;
 
     if (flow_match->header.length == 0){
         return true;
@@ -184,7 +198,7 @@ packet_match(struct ofl_match *flow_match, struct packet *fullpacket){
 
         /* Call any_match if the field is an any_match field */
         if (f->header==OXM_OF_ANY_MATCH) {
-            match_result = any_match(f, fullpacket);
+            match_result = any_match(f, packet_ext);
             if (match_result == false){
                 return false;
             } else {
