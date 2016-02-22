@@ -53,7 +53,7 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA,OXM_OF_ET
                         OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC, OXM_OF_IPV6_DST, OXM_OF_IPV6_FLABEL,
                         OXM_OF_ICMPV6_TYPE, OXM_OF_ICMPV6_CODE, OXM_OF_IPV6_ND_TARGET, OXM_OF_IPV6_ND_SLL,
                         OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
-                        OXM_OF_TUNNEL_ID, OXM_OF_ANY_MATCH, OXM_OF_IPV6_EXTHDR};
+                        OXM_OF_TUNNEL_ID, OXM_OF_ANY_MATCH, OXM_OF_EXEC_BPF,OXM_OF_IPV6_EXTHDR};
 
 #define NUM_OXM_IDS     (sizeof(oxm_ids) / sizeof(uint32_t))
 /* Do *NOT* use N_OXM_FIELDS, it's ligically wrong and can run over
@@ -224,7 +224,7 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
         /* select appropriate handler, based on match type of flow entry. */
         switch (m->type) {
             case (OFPMT_OXM): {
-               if (packet_handle_std_match(pkt->handle_std,
+               if (packet_handle_std_match(table, pkt->handle_std,
                                             (struct ofl_match *)m)) {
                     if (!entry->no_byt_count)                                            
                         entry->stats->byte_count += pkt->buffer->size;

@@ -426,6 +426,10 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 		case OFPXMT_OFB_ANY_MATCH:
 			fprintf(stream, "any_match=exists");
 			break;
+		case OFPXMT_OFB_EXEC_BPF:
+			fprintf(stream, "bpf_program=\"%d\"",((uint32_t) *f->value));
+			break;
+
 		default:
 			fprintf(stream, "unknown type %d", field);
 	}

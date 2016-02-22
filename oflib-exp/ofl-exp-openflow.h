@@ -39,7 +39,6 @@
 
 struct ofl_exp_openflow_msg_header {
     struct ofl_msg_experimenter   header; /* OPENFLOW_VENDOR_ID */
-
     uint32_t   type;
 };
 

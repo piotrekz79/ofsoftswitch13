@@ -139,6 +139,10 @@ dp_new(void) {
     dp->listeners_aux = NULL;
     dp->n_listeners_aux = 0;
 
+    /* Bpf programs */
+    //dp->bpf_programs = NULL;
+    dp->n_bpf_progs = 0;
+
     memset(dp->ports, 0x00, sizeof (dp->ports));
     dp->local_port = NULL;
 
@@ -678,3 +682,46 @@ dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
     }
     return 0;
 }
+
+/* TNO extenstions */
+ofl_err
+dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg,
+                                            const struct sender *sender)
+{
+	/*
+
+		TODO: use the nice list instead of crappy array
+
+    LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
+        if (r->role == OFPCR_ROLE_MASTER) {
+            r->role = OFPCR_ROLE_SLAVE;
+        }
+    } */
+
+	VLOG_WARN_RL(LOG_MODULE, &rl, "In datapath add adding: (%u).", msg->prog_id);
+
+
+	if (msg->prog_id < 0 || msg->prog_id > 255)
+	{
+		VLOG_WARN_RL(LOG_MODULE, &rl, "Unsupported program index: (%u).", msg->prog_id);
+		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+	}
+
+	struct dp_bpf_program * program = &dp->bpf_programs[msg->prog_id];
+	program->program = msg->program;
+	program->number = msg->prog_id;
+	program->len = msg->prog_len;
+
+	int i;
+	uint8_t * prg_ptr = program->program;
+	for (i = 0; i < program->len; i++)
+	{
+		VLOG_WARN_RL(LOG_MODULE, &rl, "PROG: (%u).", *prg_ptr );
+		prg_ptr++;
+	}
+	//ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+
+	return 0;
+}
+
+

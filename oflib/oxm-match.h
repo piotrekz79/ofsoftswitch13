@@ -226,6 +226,7 @@
 
 /* ANY MATCH */
 #define OXM_OF_ANY_MATCH  OXM_HEADER  (0x8000, 40, 248)
+#define OXM_OF_EXEC_BPF  OXM_HEADER  (0x8000, 41, 4)
 
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */
@@ -287,7 +288,7 @@ enum oxm_field_index {
 #define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
         OFI_OXM_##HEADER,
 #include "oxm-match.def"
-    NUM_OXM_FIELDS = 57
+    NUM_OXM_FIELDS = 58
 };
 
 struct oxm_field {

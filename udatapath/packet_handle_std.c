@@ -157,7 +157,7 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle) {
 
 
 bool
-packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match){
+packet_handle_std_match(struct flow_table *table, struct packet_handle_std *handle, struct ofl_match *match){
 
     if (!handle->valid){
         packet_handle_std_validate(handle);
@@ -166,7 +166,7 @@ packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *matc
         }
     }
 
-    return packet_match(match, handle->pkt);
+    return packet_match(table,match, handle->pkt);
     //return any_match(match, handle->pkt);
 }
 

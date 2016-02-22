@@ -45,11 +45,13 @@
 #include "dp_buffers.h"
 #include "dp_ports.h"
 #include "openflow/nicira-ext.h"
+#include "openflow/tno-ext.h"
 #include "ofpbuf.h"
 #include "oflib/ofl.h"
 #include "oflib/ofl-messages.h"
 #include "oflib/ofl-structs.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-tno.h"
 #include "group_table.h"
 #include "timeval.h"
 #include "list.h"
@@ -62,7 +64,11 @@ struct sender;
 /****************************************************************************
  * The datapath
  ****************************************************************************/
-
+struct dp_bpf_program {
+	uint32_t number;
+	uint32_t len;
+	uint8_t * program;
+};
 
 struct datapath {
     /* Strings to describe the manufacturer, hardware, and software. This data
@@ -85,6 +91,15 @@ struct datapath {
     struct pvconn **listeners_aux;
     size_t n_listeners_aux;
     
+    /* Bpf programs */
+    //struct list bpf_programs;
+
+    struct dp_bpf_program bpf_programs[256];
+    size_t n_bpf_progs;
+
+
+
+
     time_t last_timeout;
 
     struct dp_buffers *buffers;
@@ -216,4 +231,12 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
 ofl_err
 dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
                                             const struct sender *sender);
+
+
+/* Handle BPF programs */
+ofl_err
+dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg,
+                                            const struct sender *sender);
+
+
 #endif /* datapath.h */

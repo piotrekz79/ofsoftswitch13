@@ -40,9 +40,11 @@
 #include "oflib/ofl-messages.h"
 #include "oflib-exp/ofl-exp-openflow.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-tno.h"
 #include "openflow/openflow.h"
 #include "openflow/openflow-ext.h"
 #include "openflow/nicira-ext.h"
+#include "openflow/tno-ext.h"
 #include "vlog.h"
 
 #define LOG_MODULE VLM_dp_exp
@@ -74,9 +76,9 @@ dp_exp_message(struct datapath *dp,
                                const struct sender *sender) {
 
     switch (msg->experimenter_id) {
-        case (OPENFLOW_VENDOR_ID): {
-            struct ofl_exp_openflow_msg_header *exp = (struct ofl_exp_openflow_msg_header *)msg;
+    	struct ofl_exp_openflow_msg_header *exp = (struct ofl_exp_openflow_msg_header *)msg;
 
+    	case (OPENFLOW_VENDOR_ID): {
             switch(exp->type) {
                 case (OFP_EXT_QUEUE_MODIFY): {
                     return dp_ports_handle_queue_modify(dp, (struct ofl_exp_openflow_msg_queue *)msg, sender);
@@ -92,6 +94,31 @@ dp_exp_message(struct datapath *dp,
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
                 }
             }
+            break;
+        }
+       case (TNO_VENDOR_ID): {
+        	struct ofl_exp_tno_msg_header *exp = (struct ofl_exp_tno_msg_header *)msg;
+
+        	switch(exp->type) {
+				case (TNO_PUT_BPF): {
+					VLOG_WARN_RL(LOG_MODULE, &rl, "TNO PUT BPF !");
+					return dp_handle_put_bpf(dp, (struct ofl_exp_tno_msg_bgp *) msg, sender);
+				}
+				case (TNO_GET_BPF): {
+					VLOG_WARN_RL(LOG_MODULE, &rl, "TNO GET BPF !");
+					return 0;
+				}
+				case (TNO_DEL_BPF): {
+					VLOG_WARN_RL(LOG_MODULE, &rl, "TNO DEL BPF !");
+					return 0;
+				}
+				default: {
+					VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown TNO message type (%u).", exp->type);
+					return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+				}
+        	}
+        	break;
+
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);

@@ -429,16 +429,23 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_ANY_MATCH :{
                 struct  ofl_match_tlv *f;
                 int i;
-		printf("case\n");
+                printf("case\n");
                 HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_OF_ANY_MATCH, 0), &(pkt)->handle_std->match.match_fields){
                     struct bpf_insn **any_match = (struct bpf_insn*) f->value;
-		    for (i=0; i<10; i++){
-			printf("any_match %d - %02x\n", i, act->field->value[i]);
-                    } 
+                for (i=0; i<10; i++){
+                		printf("any_match %d - %02x\n", i, act->field->value[i]);
+                 	 }
                 }
                 break;
             }
+            case OXM_OF_EXEC_BPF : {
+            	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to set exec BPF.");
+
+                break;
+            }
+
+
             default:
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to set unknow field.");
                 break;

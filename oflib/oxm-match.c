@@ -548,6 +548,10 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             ofl_structs_match_put248(match, f->header, value);
             return 0;
         }
+        case OFI_OXM_OF_EXEC_BPF:{
+        	ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+            return 0;
+        }
         case NUM_OXM_FIELDS:
             NOT_REACHED();
     }

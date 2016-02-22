@@ -36,6 +36,7 @@
 #include "match_std.h"
 #include <pcap.h>
 #include "packet.h"
+#include "flow_table.h"
 
 #include "vlog.h"
 #define LOG_MODULE VLM_flow_e
@@ -161,9 +162,29 @@ any_match(struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt){
 }
 
 
+bool exec_bpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt) {
+    uint32_t fullsize = sizeof(pkt->in_port) + pkt->packet->buffer->size;
+    //struct bpf_insn *instructions = (struct bpf_insn *) ofl_match_tlv->value;
+
+    uint32_t * prg_id = ofl_match_tlv->value;
+
+    struct bpf_insn *instructions = (struct bpf_insn *) &(dp->bpf_programs[*prg_id]);
+
+    /* Create a linear array of the extended packet */
+    void * fullpacket = (void *) malloc(fullsize);
+    memcpy(fullpacket, &pkt->in_port, sizeof(pkt->in_port));
+    memcpy(fullpacket + sizeof(pkt->in_port), pkt->packet->buffer->data, pkt->packet->buffer->size);
+
+    /* Call libpcap's bpf_filter */
+//    return bpf_filter(instructions, fullpacket, fullsize, fullsize);
+
+    return false;
+}
+
+
 /* Returns true if the fields in *packet matches the flow entry in *flow_match */
 bool
-packet_match(struct ofl_match *flow_match, struct packet *fullpacket){
+packet_match(struct flow_table * table, struct ofl_match *flow_match, struct packet *fullpacket){
 
     struct ofl_match *packet;
     struct ofl_match_tlv *f;
@@ -199,6 +220,14 @@ packet_match(struct ofl_match *flow_match, struct packet *fullpacket){
         /* Call any_match if the field is an any_match field */
         if (f->header==OXM_OF_ANY_MATCH) {
             match_result = any_match(f, packet_ext);
+            if (match_result == false){
+                return false;
+            } else {
+                continue;
+            }
+        }
+        if (f->header==OXM_OF_EXEC_BPF) {
+            match_result = exec_bpf(table->dp,f, packet_ext);
             if (match_result == false){
                 return false;
             } else {
