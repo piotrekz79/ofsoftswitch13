@@ -106,9 +106,8 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg) {
             return ofl_exp_nicira_msg_free(msg);
         }
         case (TNO_VENDOR_ID): {
-        	// TODO: write real free
         	OFL_LOG_WARN(LOG_MODULE, "Trying to free TNO experimenter MESSAGE");
-            return 0;//return ofl_exp_tno_msg_free(msg);
+            return ofl_exp_tno_msg_free(msg);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown EXPERIMENTER message (%u).", msg->experimenter_id);

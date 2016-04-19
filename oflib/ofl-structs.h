@@ -406,6 +406,13 @@ struct ofl_meter_features {
     uint8_t max_color; /* Maximum color value */
 };
 
+
+struct ofl_oxm_bpf_match {
+	uint32_t	bpf_prog_num;
+	uint64_t	bpf_prog_res;
+	uint64_t	bpf_prog_mask;
+};
+
 /****************************************************************************
  * Utility functions to match structure
  ****************************************************************************/
@@ -456,6 +463,15 @@ ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t val
 
 void
 ofl_structs_match_put_ipv6m(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN], uint8_t mask[IPv6_ADDR_LEN]);
+
+void
+ofl_structs_match_put20(struct ofl_match *match, uint32_t header, uint8_t * value);
+
+void
+ofl_structs_match_put248(struct ofl_match *match, uint32_t header, char * value);
+
+void
+ofl_structs_match_put_execBpf(struct ofl_match *match, uint32_t header, uint32_t prog_num , uint64_t result,  uint64_t mask, uint8_t param_len, uint8_t * param);
 
 #ifdef __cplusplus
 }

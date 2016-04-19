@@ -302,6 +302,7 @@ static uint8_t* get_oxm_value(struct ofl_match *m, uint32_t header){
      return NULL;
 }
 
+//TODO TNO: OUR BUG LIVES HEERE !
 static int
 parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
                 const void *value, const void *mask){
@@ -549,7 +550,30 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
         }
         case OFI_OXM_OF_EXEC_BPF:{
-        	ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+
+        	VLOG_WARN_RL(LOG_MODULE, &rl, "GOT OFI_OXM_OF_EXEC_BPF");
+
+        	uint32_t * prog_num_ptr = value;
+        	uint64_t * prog_res_ptr = (value + sizeof(uint32_t) );
+        	uint64_t * prog_mask_ptr = (value + sizeof(uint32_t) + sizeof(uint64_t) );
+        	uint8_t * param_len_ptr	= (value + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) );
+        	uint8_t * param = (value + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint8_t));
+
+        	uint32_t prog_num = ntohl(*prog_num_ptr);
+        	uint64_t prog_res = ntoh64(*prog_res_ptr);
+        	uint64_t prog_mask = ntoh64(*prog_mask_ptr);
+        	uint8_t param_len = *param_len_ptr;
+
+        	ofl_structs_match_put_execBpf(match, f->header,
+        					prog_num,
+        					prog_res,
+        					prog_mask,
+        					param_len,
+        					param);
+
+
+        	//ofl_structs_match_put20(match, f->header, value);
+
             return 0;
         }
         case NUM_OXM_FIELDS:
@@ -723,12 +747,30 @@ oxm_put_64(struct ofpbuf *buf, uint32_t header, uint64_t value)
     ofpbuf_put(buf, &value, sizeof value);
 }
 
+
 static void
 oxm_put_248(struct ofpbuf *buf, uint32_t header, uint8_t* value)
 {
     oxm_put_header(buf, header);
     ofpbuf_put(buf, value, 248);
 }
+
+static void oxm_put_bpf(struct ofpbuf *buf, uint32_t header, uint32_t prog_num, uint64_t value, uint64_t mask)
+{
+	oxm_put_header(buf, header);
+	ofpbuf_put(buf, &prog_num, sizeof prog_num);
+	ofpbuf_put(buf, &value, sizeof value);
+	ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+
+static void
+oxm_put_20(struct ofpbuf *buf, uint32_t header, uint8_t* value)
+{
+    oxm_put_header(buf, header);
+    ofpbuf_put(buf, value, 20);
+}
+
 
 static void
 oxm_put_64w(struct ofpbuf *buf, uint32_t header, uint64_t value, uint64_t mask)
@@ -885,12 +927,30 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                has_mask = true;
             }
             switch (length){
-		case (248): {
+            	case (248): {
                     uint8_t value[248];
                     memcpy(value, oft->value, 248);
                     oxm_put_248(buf, oft->header, value);
                     break;
-		}
+            	}
+            	case (20):{
+            		//TODO TNO: fix this for conversion to network order
+            		// uint32_t uint64_t uint64_t
+
+            		//uint8_t value[20];
+            		//memcpy(value, oft->value, 20);
+            		//oxm_put_20(buf,oft->header,value);
+            		uint32_t prog_num;
+            		uint64_t prog_res;
+            		uint64_t prog_mask;
+
+            		memcpy(&prog_num, oft->value,sizeof(prog_num));
+            		memcpy(&prog_res, oft->value + sizeof(prog_num),sizeof(prog_res));
+            		memcpy(&prog_mask, oft->value + sizeof(prog_num) + sizeof(prog_res),sizeof(prog_mask));
+
+            		oxm_put_bpf(buf,oft->header,htonl(prog_num),hton64(prog_res),hton64(prog_mask));
+            		break;
+            	}
                 case (sizeof(uint8_t)):{
                     uint8_t value;
                     memcpy(&value, oft->value,sizeof(uint8_t));

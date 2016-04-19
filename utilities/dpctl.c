@@ -1565,7 +1565,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put64(m, OXM_OF_ANY_MATCH, any_match);
             continue;
         }
-        /* EXEC BPF  */
+        /* EXEC BPF
+         * TODO: TNO FIx THIS for inserting flows from dpctl
+         *
+         * */
         if (strncmp(token, MATCH_EXEC_BPF KEY_VAL, strlen(MATCH_EXEC_BPF KEY_VAL)) == 0) {
             uint32_t bpf_index;
             if (parse32(token + strlen(MATCH_EXEC_BPF KEY_VAL), NULL, 0, 0xffffffff, &bpf_index)) {

@@ -2,7 +2,7 @@
  * ofl-exp-tno.c
  *
  *  Created on: Feb 21, 2016
- *      Author: borgert
+ *      Author: Borgert van der Kluit
  */
 
 
@@ -40,7 +40,7 @@ ofl_exp_tno_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *bu
             }
         }
     } else {
-        OFL_LOG_WARN(LOG_MODULE, "Trying to print non-Tno Experimenter message.");
+        OFL_LOG_WARN(LOG_MODULE, "Trying to print non-TNO Experimenter message.");
         return -1;
     }
 }
@@ -50,6 +50,9 @@ ofl_exp_tno_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experi
     struct ofl_exp_tno_msg_header *tno_exp;
 
     struct tno_header *exp;
+    struct ofl_tno_bpf_put_header *src;
+    struct ofl_exp_tno_msg_bpf *dst;
+    ofl_err error;
 
     if (*len < sizeof(struct ofl_exp_tno_msg_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message has invalid length (%zu).", *len);
@@ -66,9 +69,7 @@ ofl_exp_tno_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experi
 			case (TNO_PUT_BPF): {
 				OFL_LOG_WARN(LOG_MODULE, "Trying to TNO SET BPF");
 
-                struct ofl_tno_bpf_put_header *src;
-				struct ofl_exp_tno_msg_bpf *dst;
-				ofl_err error;
+
 
 				if (*len < sizeof(struct ofl_tno_bpf_put_header)) {
 					OFL_LOG_WARN(LOG_MODULE,
@@ -157,7 +158,7 @@ ofl_exp_tno_msg_free(struct ofl_msg_experimenter *msg) {
     } else {
         OFL_LOG_WARN(LOG_MODULE, "Trying to free non-TNO Experimenter message.");
     }
-    //free(msg);
+    free(msg);
     return 0;
 }
 

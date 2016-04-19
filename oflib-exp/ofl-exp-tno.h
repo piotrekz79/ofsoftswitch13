@@ -2,7 +2,7 @@
  * ofl-exp-tno.h
  *
  *  Created on: Feb 21, 2016
- *      Author: borgert
+ *      Author: Borgert van der Kluit
  */
 
 #ifndef OFL_EXP_DEF_TNO_H_
@@ -53,7 +53,7 @@ int
 ofl_exp_tno_msg_free(struct ofl_msg_experimenter *msg);
 
 char *
-ofl_exp_nto_msg_to_string(struct ofl_msg_experimenter *msg);
+ofl_exp_tno_msg_to_string(struct ofl_msg_experimenter *msg);
 
 
 

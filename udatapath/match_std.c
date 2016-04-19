@@ -37,9 +37,13 @@
 #include <pcap.h>
 #include "packet.h"
 #include "flow_table.h"
+#include "../ubpf/vm/inc/ubpf.h"
+#include "ofsoft-bpf.h"
 
 #include "vlog.h"
 #define LOG_MODULE VLM_flow_e
+
+static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 /* Returns true if two 8 bit values match */
 static inline bool
@@ -161,12 +165,15 @@ any_match(struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt){
     return bpf_filter(instructions, fullpacket, fullsize, fullsize);
 }
 
-
 bool exec_bpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt) {
-    uint32_t fullsize = sizeof(pkt->in_port) + pkt->packet->buffer->size;
+	uint64_t res;
+	uint32_t fullsize = sizeof(pkt->in_port) + pkt->packet->buffer->size;
     //struct bpf_insn *instructions = (struct bpf_insn *) ofl_match_tlv->value;
 
-    uint32_t * prg_id = ofl_match_tlv->value;
+    uint32_t * prg_id = (uint32_t *) ofl_match_tlv->value;
+
+    uint64_t * prg_res = (uint64_t *) ofl_match_tlv->value + sizeof(uint32_t);
+    uint64_t * prg_match = (uint64_t *) ofl_match_tlv->value + sizeof(uint32_t) + sizeof(uint64_t);
 
     struct bpf_insn *instructions = (struct bpf_insn *) &(dp->bpf_programs[*prg_id]);
 
@@ -176,10 +183,104 @@ bool exec_bpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct 
     memcpy(fullpacket + sizeof(pkt->in_port), pkt->packet->buffer->data, pkt->packet->buffer->size);
 
     /* Call libpcap's bpf_filter */
-//    return bpf_filter(instructions, fullpacket, fullsize, fullsize);
 
-    return false;
+    res = bpf_filter(instructions, fullpacket, fullsize, fullsize);
+
+    return match_mask64((uint8_t *) prg_res, (uint8_t *) prg_match , (uint8_t *) &res);
 }
+/*
+bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt) {
+
+
+	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF!");
+
+    struct ubpf_vm *vm = ubpf_create();
+    if (!vm) {
+    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
+    	return false;
+    }
+
+    uint32_t * prg_id = (uint32_t *) ofl_match_tlv->value;
+    struct bpf_insn *instructions = (struct bpf_insn *) (dp->bpf_programs[*prg_id].program);
+    uint32_t prg_len = dp->bpf_programs[*prg_id].len;
+
+    uint64_t * result = (uint64_t *) ofl_match_tlv->value + 4;
+    uint64_t * mask = (uint64_t *) ofl_match_tlv->value + 12;
+
+
+
+    VLOG_WARN_RL(LOG_MODULE, &rl, "Loading eBPF prog (%d)", (int)*prg_id);
+
+    char *errmsg;
+    int rv;
+    rv = ubpf_load(vm,instructions,prg_len, &errmsg);
+
+    if (rv < 0)
+    {
+    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
+    	free(errmsg);
+        ubpf_destroy(vm);
+        return false;
+
+    }
+
+    uint64_t ret;
+    ret = ubpf_exec(vm, pkt->packet->buffer->data, pkt->packet->buffer->size);
+
+    ubpf_destroy(vm);
+
+    VLOG_WARN_RL(LOG_MODULE, &rl, "end of eBPF!");
+
+    if (ret > 0) {
+    	return true;
+    }
+    return false;
+} */
+
+bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32_t prognum, uint64_t result, uint64_t mask,struct ofsoft_bpf *param) {
+
+
+	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF!");
+
+	//TODO TNO: add this to the bpf_program struct and create the VM upon addition of the program instead of per packet !
+    struct ubpf_vm *vm = ubpf_create();
+    if (!vm) {
+    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
+    	return false;
+    }
+
+    struct bpf_insn *instructions = (struct bpf_insn *) (dp->bpf_programs[prognum].program);
+    uint32_t prg_len = dp->bpf_programs[prognum].len;
+
+    VLOG_WARN_RL(LOG_MODULE, &rl, "Loading eBPF prog (%d)", prognum);
+
+    char *errmsg;
+    int rv;
+    //rv = ubpf_load(vm,instructions,prg_len, &errmsg);
+
+    rv = ubpf_load_elf(vm,instructions,prg_len, &errmsg);
+
+    if (rv < 0)
+    {
+    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
+    	free(errmsg);
+        ubpf_destroy(vm);
+        return false;
+
+    }
+
+    uint64_t ret;
+    //Execute with total lentgh of param, the struct, param and packet buffers.
+    ret = ubpf_exec(vm, param, sizeof(struct ofsoft_bpf) + param->param_len + param->packet_len);
+
+    ubpf_destroy(vm);
+
+    VLOG_WARN_RL(LOG_MODULE, &rl, "end of eBPF!");
+
+    return match_mask64((uint8_t*)&ret, (uint8_t*)&mask, (uint8_t*)&result);
+}
+
+
 
 
 /* Returns true if the fields in *packet matches the flow entry in *flow_match */
@@ -226,8 +327,48 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
                 continue;
             }
         }
+
+        //TODO: TNO exend this for the new match
+        //TODO: TNO add mask
         if (f->header==OXM_OF_EXEC_BPF) {
-            match_result = exec_bpf(table->dp,f, packet_ext);
+        	struct ofsoft_bpf * bpf_param;
+
+        	//convenience pointer (should make a struct for this)
+        	uint32_t * prog_num_ptr = (f->value);
+        	uint64_t * prog_res_ptr = (f->value + sizeof(uint32_t));
+        	uint64_t * prog_mask_ptr = (f->value + sizeof(uint32_t) + sizeof(uint64_t));
+        	uint8_t * param_len_ptr = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t));
+        	uint8_t * param = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t) + sizeof(uint8_t));
+
+
+        	bpf_param = (struct ofsoft_bpf *) malloc(sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size);
+
+        	//Metadata
+        	bpf_param->in_port = fullpacket->in_port;
+        	bpf_param->table_id = fullpacket->table_id;
+
+        	//Parameter
+        	bpf_param->param_len = * param_len_ptr;
+
+        	//Copy parameters just after the struct unfortunately we need a continouous block of mem for the VM
+        	void * param_offset = bpf_param + sizeof(struct ofsoft_bpf);
+        	memcpy(param_offset, param, *param_len_ptr);
+        	bpf_param->param = param_offset;
+
+        	//Actual packet
+        	bpf_param->packet_len = fullpacket->buffer->size;
+
+        	//Copy packet afther the parameter
+        	void * packet_offset = bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
+        	memcpy(packet_offset, fullpacket->buffer->data, fullpacket->buffer->size);
+
+        	bpf_param->packet = packet_offset;
+
+
+            match_result = exec_ebpf(table->dp,f,*prog_num_ptr,*prog_res_ptr,*prog_mask_ptr, bpf_param);
+
+            // TODO: TNO fix this as we need to do a proper copy for all params
+            //free(bpf_param);
             if (match_result == false){
                 return false;
             } else {
@@ -433,6 +574,7 @@ strict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  * masked fields are checked for equality, and only unmasked bits are compared
  * in the field.
  */
+//TODO: update for bpf
 bool
 match_std_strict(struct ofl_match *a, struct ofl_match *b) {
 
@@ -615,6 +757,7 @@ nonstrict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  * masked in (a), or is set to the same value in both matches.
  *
  */
+//TODO: update for bpf
 bool
 match_std_nonstrict(struct ofl_match *a, struct ofl_match *b)
 {
@@ -789,7 +932,7 @@ incompatible_128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  * Conversely, two flow matches do not overlap if they share at least one match field with
  * incompatible value/mask fields that can't match any packet.
  */
-
+//TODO: update for bpf
 bool
 match_std_overlap(struct ofl_match *a, struct ofl_match *b)
 {

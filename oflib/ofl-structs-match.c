@@ -134,6 +134,20 @@ ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value
 }
 
 void
+ofl_structs_match_put20(struct ofl_match *match, uint32_t header, uint8_t * value){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = 20;
+
+    m->header = header;
+    m->value = malloc(len);
+    memcpy(m->value, value, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += len + 4;
+
+}
+
+
+void
 ofl_structs_match_put248(struct ofl_match *match, uint32_t header, char * value){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = 248;
@@ -141,6 +155,34 @@ ofl_structs_match_put248(struct ofl_match *match, uint32_t header, char * value)
     m->header = header;
     m->value = malloc(len);
     memcpy(m->value, value, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += len + 4;
+
+}
+
+void
+ofl_structs_match_put_execBpf(struct ofl_match *match, uint32_t header, uint32_t prog_num , uint64_t result,  uint64_t mask, uint8_t param_len, uint8_t * param)
+{
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = sizeof(uint32_t) + 2*sizeof(uint64_t) +sizeof(uint8_t) + param_len;
+    if (param_len > 228)
+    {
+    	return;
+    }
+
+
+    //TODO: TNO Update
+
+
+    m->header = header;
+    m->value = malloc(len);
+    memcpy(m->value, &prog_num, sizeof(uint32_t));
+    memcpy(m->value + sizeof(uint32_t), &result, sizeof(uint64_t));
+    memcpy(m->value + sizeof(uint64_t) + sizeof(uint32_t), &mask, sizeof(uint64_t));
+
+    memcpy(m->value + 2* sizeof(uint64_t) + sizeof(uint32_t), &param_len, sizeof(uint8_t)); // cpy param_len
+    memcpy(m->value + 2* sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t), param, param_len); // cpy param
+
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
 

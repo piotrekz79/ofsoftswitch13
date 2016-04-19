@@ -427,7 +427,13 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "any_match=exists");
 			break;
 		case OFPXMT_OFB_EXEC_BPF:
-			fprintf(stream, "bpf_program=\"%d\"",((uint32_t) *f->value));
+			;
+			struct ofl_oxm_bpf_match *bpf_match;
+			bpf_match = (struct ofl_oxm_bpf_match*)f->value;
+
+			fprintf(stream, "bpf_program=\"%d\"", bpf_match->bpf_prog_num);
+			fprintf(stream, ", bpf_result=\"0x%"PRIx64"\"", bpf_match->bpf_prog_res);
+			fprintf(stream, ", bpf_mask=\"0x%"PRIx64"\"", bpf_match->bpf_prog_mask);
 			break;
 
 		default:

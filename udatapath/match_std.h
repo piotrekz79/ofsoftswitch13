@@ -33,14 +33,19 @@
 #define MATCH_EXT_H 1
 
 #include <stdbool.h>
-#include "oflib/ofl-structs.h"
 #include "packet.h"
+#include "oflib/ofl-structs.h"
 #include "flow_table.h"
+#include "packet.h"
+#include "ofsoft-bpf.h"
 
 /****************************************************************************
  * Functions for comparing two extended match structures.
  ******************************************************
  **********************/
+
+struct packet_ext;
+
 bool
 match_std_overlap(struct ofl_match *a, struct ofl_match *b);
 
@@ -52,6 +57,10 @@ any_match(struct ofl_match_tlv *a, struct packet_ext *b);
 
 bool
 exec_bpf(struct datapath * dp, struct ofl_match_tlv *a, struct packet_ext *b);
+
+bool
+exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32_t prognum, uint64_t result, uint64_t mask,struct ofsoft_bpf *param);
+
 
 /* Returns true if match a matches match b, in a strict manner. */
 bool

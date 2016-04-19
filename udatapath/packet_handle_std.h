@@ -43,6 +43,8 @@
  * A handler processing a datapath packet for standard matches.
  ****************************************************************************/
 
+struct flow_table;
+
 /* The data associated with the handler */
 struct packet_handle_std {
    struct packet              *pkt;
