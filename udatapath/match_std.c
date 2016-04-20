@@ -270,12 +270,14 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32
     }
 
     uint64_t ret;
-    //Execute with total lentgh of param, the struct, param and packet buffers.
-    ret = ubpf_exec(vm, param, sizeof(struct ofsoft_bpf) + param->param_len + param->packet_len);
+    //Execute with total length of param, the struct, param and packet buffers.
+    size_t size =  sizeof(struct ofsoft_bpf) + param->param_len + param->packet_len;
+    ret = ubpf_exec(vm, param, size);
 
     ubpf_destroy(vm);
 
-    VLOG_WARN_RL(LOG_MODULE, &rl, "end of eBPF!");
+    VLOG_WARN_RL(LOG_MODULE, &rl, "EBPF return val: \"0x%"PRIx64"\"", ret);
+
 
     return match_mask64((uint8_t*)&ret, (uint8_t*)&mask, (uint8_t*)&result);
 }
@@ -328,10 +330,8 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
             }
         }
 
-        //TODO: TNO exend this for the new match
-        //TODO: TNO add mask
         if (f->header==OXM_OF_EXEC_BPF) {
-        	struct ofsoft_bpf * bpf_param;
+        	struct ofsoft_bpf * bpf_param = NULL;
 
         	//convenience pointer (should make a struct for this)
         	uint32_t * prog_num_ptr = (f->value);
@@ -340,34 +340,48 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
         	uint8_t * param_len_ptr = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t));
         	uint8_t * param = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t) + sizeof(uint8_t));
 
-
         	bpf_param = (struct ofsoft_bpf *) malloc(sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size);
 
+        	uint8_t * ptr = bpf_param;
+        	int i = 0;
+        	for (i = 0; i < ( sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size ) ; i++ )
+        	{
+        		*ptr = 0xFE;
+        		ptr++;
+        	}
+
+
         	//Metadata
-        	bpf_param->in_port = fullpacket->in_port;
-        	bpf_param->table_id = fullpacket->table_id;
 
-        	//Parameter
-        	bpf_param->param_len = * param_len_ptr;
+        	memcpy(&bpf_param->in_port, &fullpacket->in_port, sizeof(uint32_t));
+        	memcpy(&bpf_param->table_id, &fullpacket->table_id, sizeof(uint8_t));
 
-        	//Copy parameters just after the struct unfortunately we need a continouous block of mem for the VM
-        	void * param_offset = bpf_param + sizeof(struct ofsoft_bpf);
+        	//Parameter length
+        	memcpy(&bpf_param->param_len, param_len_ptr, sizeof(uint8_t));
+
+        	//Copy parameters just after the struct
+        	uint8_t * param_offset = (uint8_t* )bpf_param + sizeof(struct ofsoft_bpf);
         	memcpy(param_offset, param, *param_len_ptr);
-        	bpf_param->param = param_offset;
 
-        	//Actual packet
-        	bpf_param->packet_len = fullpacket->buffer->size;
+        	//Copy the pointer
+        	//memcpy(&bpf_param->param, &param_offset, sizeof(uint8_t *));
+        	bpf_param->param = (uint8_t *)bpf_param + sizeof(struct ofsoft_bpf);
+
+
+        	//Copy packet length
+        	memcpy(&bpf_param->packet_len,&fullpacket->buffer->size, sizeof(size_t));
 
         	//Copy packet afther the parameter
-        	void * packet_offset = bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
+        	uint8_t * packet_offset = (uint8_t* )bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
         	memcpy(packet_offset, fullpacket->buffer->data, fullpacket->buffer->size);
 
-        	bpf_param->packet = packet_offset;
+        	//Copy packet offset pointer
+        	//memcpy(&bpf_param->packet, &packet_offset, sizeof(uint8_t* ));
 
+        	bpf_param->packet = (uint8_t *)bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
 
             match_result = exec_ebpf(table->dp,f,*prog_num_ptr,*prog_res_ptr,*prog_mask_ptr, bpf_param);
 
-            // TODO: TNO fix this as we need to do a proper copy for all params
             //free(bpf_param);
             if (match_result == false){
                 return false;

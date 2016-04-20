@@ -16,12 +16,14 @@ struct ofsoft_bpf {
 	uint32_t            in_port;
 
 	// Match parameter
-	size_t				param_len;
-	uint8_t *			param;
+	uint8_t				param_len;
 
 	// Packet
-	size_t				packet_len;
-	uint8_t	*			packet;
+	size_t			packet_len;
+
+	uint8_t * 		param;
+	uint8_t * 		packet;
+
 };
 
 

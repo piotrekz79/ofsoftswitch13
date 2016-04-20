@@ -44,7 +44,7 @@ udatapath_ofdatapath_SOURCES = \
 	udatapath/pipeline.h \
 	udatapath/udatapath.c
 
-udatapath_ofdatapath_LDADD = lib/libopenflow.a oflib/liboflib.a oflib-exp/liboflib_exp.a nbee_link/libnbee_link.a -lpcap $(SSL_LIBS) $(FAULT_LIBS)
+udatapath_ofdatapath_LDADD = lib/libopenflow.a oflib/liboflib.a oflib-exp/liboflib_exp.a nbee_link/libnbee_link.a ../ubpf/vm/libubpf.a -lpcap $(SSL_LIBS) $(FAULT_LIBS)
 udatapath_ofdatapath_CPPFLAGS = $(AM_CPPFLAGS)
 nodist_EXTRA_udatapath_ofdatapath_SOURCES = dummy.cxx
 
