@@ -8,7 +8,7 @@ OpenFlow 1.3.
 This project was orginally forked on Github from: [CPqD](https://github.com/CPqD/ofsoftswitch13)
 This was forked then by: [czivar](https://github.com/czivar/ofsoftswitch13) who
 added support for BPF filtering.
-This was forked by Borgert to add eBPF support here: [b0rg3rt](https://github.com/b0rg3rt/ofsoftswitch13)
+This was forked by Borgert to add eBPF support here: [b0rg3rt](https://github.com/b0rg3rt/ofsoftswitch13).
 Now this project is migrated from Github to ci.tno.nl to work on new functionality.
 
 The following components are available in this package:
