@@ -237,9 +237,8 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct
     return false;
 } */
 
-bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32_t prognum, uint64_t result, uint64_t mask,struct ofsoft_bpf *param) {
-
-
+bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32_t prognum, uint64_t result, uint64_t mask, struct ofsoft_bpf *param)
+{
 	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF!");
 
 	//TODO TNO: add this to the bpf_program struct and create the VM upon addition of the program instead of per packet !
@@ -333,7 +332,7 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
         if (f->header==OXM_OF_EXEC_BPF) {
         	struct ofsoft_bpf * bpf_param = NULL;
 
-        	//convenience pointer (should make a struct for this)
+        	// Convenience pointer (should make a struct for this)
         	uint32_t * prog_num_ptr = (f->value);
         	uint64_t * prog_res_ptr = (f->value + sizeof(uint32_t));
         	uint64_t * prog_mask_ptr = (f->value + sizeof(uint32_t) + sizeof(uint64_t));
@@ -352,7 +351,6 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
 
 
         	//Metadata
-
         	memcpy(&bpf_param->in_port, &fullpacket->in_port, sizeof(uint32_t));
         	memcpy(&bpf_param->table_id, &fullpacket->table_id, sizeof(uint8_t));
 
@@ -388,7 +386,7 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
             } else {
                 continue;
             }
-        }
+        }// END HMAP for eacht
 
         if (has_mask) {
             /* Clear the has_mask bit and divide the field_len by two in the packet field header */
@@ -582,13 +580,56 @@ strict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 }
 
 
+/** TNO
+ * This function checks if flow a is the same as flow b.
+ * It is following the structure used in "ofl_structs_match_put_execBpf()" function from ofl-structs-mat.c:169.
+ * First the program number is matched, then the "result" then the "mask"
+ * And the last thing the variable length parameter.
+ */
+static inline bool match_ebpf_flow(uint8_t *a, uint8_t *b)
+{
+	uint8_t *a_prog_id		= a;
+	uint8_t *a_result 		= a_prog_id + sizeof(uint32_t);
+	uint8_t *a_mask 		= a_result + sizeof(uint64_t);
+	uint8_t *a_param_len 	= a_mask + sizeof(uint64_t);
+	uint8_t *a_param 		= a_param_len + sizeof(uint8_t);
+
+	uint8_t *b_prog_id		= b;
+	uint8_t *b_result 		= b_prog_id + sizeof(uint32_t);
+	uint8_t *b_mask 		= b_result + sizeof(uint64_t);
+	uint8_t *b_param_len 	= b_mask + sizeof(uint64_t);
+	uint8_t *b_param 		= b_param_len + sizeof(uint8_t);
+
+
+	if ( match_32(a_prog_id, b_prog_id) && match_64(a_result, b_result) && match_64(a_mask, b_mask) ) {
+		// If all this stuff matches then do the param compare!
+
+		// First do param_len compare.
+		if (match_8(a_param_len, b_param_len)) {
+			// Equal!
+			// This is a slow function so only do as last resort!
+			if (strncmp((const char *)a_param, (const char *)b_param, *a_param) == 0) {
+				return true;
+			} else {
+				// Not equal! So return false.
+				return false;
+			}
+		} else {
+			// Not equal! So return false.
+			return false;
+		}
+	} else {
+		return false;
+	}
+}
+
+//TODO TNO: update for ebpf
 /* Two matches strictly match if their wildcard fields are the same, and all the
  * non-wildcarded fields match on the same exact values.
  * NOTE: Handling of bitmasked fields is not specified. In this implementation
  * masked fields are checked for equality, and only unmasked bits are compared
  * in the field.
  */
-//TODO: update for bpf
 bool
 match_std_strict(struct ofl_match *a, struct ofl_match *b) {
 
@@ -618,7 +659,7 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
 
         /* At this point match length and has_mask are equal */
         has_mask = OXM_HASMASK(flow_mod_match->header);
-        field_len =  OXM_LENGTH(flow_mod_match->header);
+        field_len =  OXM_LENGTH(flow_mod_match->header);  /* TODO TNO: for now the field length is for eBPF is 248, but in the future this is var length is guess so the match case should be handeld by default or not by the switch case at all.*/
         flow_mod_val = flow_mod_match->value;
         flow_entry_val = flow_entry_match->value;
         if (has_mask)
@@ -698,8 +739,13 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
                         return false;
                 }
                 break;
+            case 248: // TODO TNO: FIX This
+            	if(!match_ebpf_flow(flow_mod_val, flow_entry_val)) {
+            		return false;
+            	}
             default:
                 /* Should never happen */
+            	VLOG_WARN_RL(LOG_MODULE, &rl, "Default switch case reached! Should not happen!");
                 break;
         } /* switch (field_len) */
 
@@ -771,7 +817,7 @@ nonstrict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  * masked in (a), or is set to the same value in both matches.
  *
  */
-//TODO: update for bpf
+//TODO TNO: update for bpf
 bool
 match_std_nonstrict(struct ofl_match *a, struct ofl_match *b)
 {
