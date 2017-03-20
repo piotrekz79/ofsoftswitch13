@@ -159,7 +159,7 @@ flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
         if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
             flow_entry_replace_instructions(entry, mod->instructions_num, mod->instructions);
-	    flow_entry_modify_stats(entry, mod);
+        flow_entry_modify_stats(entry, mod);
             *insts_kept = true;
         }
     }
@@ -188,10 +188,12 @@ ofl_err
 flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept) {
     switch (mod->command) {
         case (OFPFC_ADD): {
+            VLOG_WARN_RL(LOG_MODULE, &rl, "OFPFC_ADD (Flow add)");
             bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
             return flow_table_add(table, mod, overlap, match_kept, insts_kept);
         }
         case (OFPFC_MODIFY): {
+            VLOG_WARN_RL(LOG_MODULE, &rl, "OFPFC_MODIFY (Flow modify)");
             return flow_table_modify(table, mod, false, insts_kept);
         }
         case (OFPFC_MODIFY_STRICT): {
@@ -279,13 +281,13 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             inst_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_instructions));
             inst_capabilities->header.type = type;
             inst_capabilities->instruction_ids = xmalloc(sizeof(instructions));
-	    if (PIPELINE_TABLES > 1) {
+        if (PIPELINE_TABLES > 1) {
               inst_capabilities->ids_num = N_INSTRUCTIONS;
               memcpy(inst_capabilities->instruction_ids, instructions, sizeof(instructions));
-	    } else {
+        } else {
               inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
               memcpy(inst_capabilities->instruction_ids, instructions_nogoto, sizeof(instructions_nogoto));
-	    }
+        }
             inst_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&inst_capabilities->header, NULL);            
             (*prop) =  (struct ofl_table_feature_prop_header*) inst_capabilities;
             break;        
@@ -450,11 +452,11 @@ flow_table_aggregate_stats(struct flow_table *table, struct ofl_msg_multipart_re
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         if ((msg->out_port == OFPP_ANY || flow_entry_has_out_port(entry, msg->out_port)) &&
             (msg->out_group == OFPG_ANY || flow_entry_has_out_group(entry, msg->out_group))) {
-			
-			if (!entry->no_pkt_count)
-            	(*packet_count) += entry->stats->packet_count;
-			if (!entry->no_byt_count)            
-				(*byte_count)   += entry->stats->byte_count;
+
+            if (!entry->no_pkt_count)
+                (*packet_count) += entry->stats->packet_count;
+            if (!entry->no_byt_count)
+                (*byte_count)   += entry->stats->byte_count;
             (*flow_count)++;
         }
     }

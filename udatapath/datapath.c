@@ -166,7 +166,7 @@ dp_new(void) {
     if(strlen(dp->dp_desc) == 0) {
         /* just use "$HOSTNAME pid=$$" */
         char hostnametmp[DESC_STR_LEN];
-	    gethostname(hostnametmp,sizeof hostnametmp);
+        gethostname(hostnametmp,sizeof hostnametmp);
         snprintf(dp->dp_desc, sizeof dp->dp_desc,"%s pid=%u",hostnametmp, getpid());
     }
 
@@ -346,9 +346,9 @@ remote_destroy(struct remote *r)
             rconn_destroy(r->rconn_aux);
         }
         rconn_destroy(r->rconn);
-	if(r->mp_req_msg != NULL) {
-	  ofl_msg_free((struct ofl_msg_header *) r->mp_req_msg, NULL);
-	}
+    if(r->mp_req_msg != NULL) {
+      ofl_msg_free((struct ofl_msg_header *) r->mp_req_msg, NULL);
+    }
         free(r);
     }
 }
@@ -691,54 +691,54 @@ dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
 /* TNO extenstions */
 ofl_err dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg, const struct sender *sender)
 {
-	/*
+    /*
 
-		TODO: TNO use the nice list instead of crappy array
+        TODO: TNO use the nice list instead of crappy array
 
     LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
         if (r->role == OFPCR_ROLE_MASTER) {
             r->role = OFPCR_ROLE_SLAVE;
         }
     } */
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Save eBPF program to datapath, program id=(%u).", msg->prog_id);
+    VLOG_WARN_RL(LOG_MODULE, &rl, "Save eBPF program to datapath, program id=(%u).", msg->prog_id);
 
-	if (msg->prog_id < 0 || msg->prog_id > 255)
-	{
-		VLOG_WARN_RL(LOG_MODULE, &rl, "Unsupported program index: (%u).", msg->prog_id);
-		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
-	}
-
-
-	//TODO TNO change this for malloc & copy! WHY would you do that? because msg needs to be freed?
-	struct dp_bpf_program * program = &dp->bpf_programs[msg->prog_id];
-	program->program = msg->program;
-	program->number = msg->prog_id;
-	program->len = msg->prog_len;
-
-	/* Create a pointer to a uBPF VM, this per program */
-	struct ubpf_vm *ubpfvm = ubpf_create();
-	if (!ubpfvm) {
-	        VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
-	        return false;
-	}
-	program->vm = ubpfvm;
+    if (msg->prog_id < 0 || msg->prog_id > 255)
+    {
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Unsupported program index: (%u).", msg->prog_id);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+    }
 
 
-	/*
-	int i;
-	uint8_t * prg_ptr = program->program;
-	for (i = 0; i < program->len; i++)
-	{
-		VLOG_WARN_RL(LOG_MODULE, &rl, "PROG: (%u).", *prg_ptr );
-		prg_ptr++;
-	} */
+    //TODO TNO change this for malloc & copy! WHY would you do that? because msg needs to be freed?
+    struct dp_bpf_program * program = &dp->bpf_programs[msg->prog_id];
+    program->program = msg->program;
+    program->number = msg->prog_id;
+    program->len = msg->prog_len;
 
-	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF Program size: (%u).", msg->prog_len );
+    /* Create a pointer to a uBPF VM, this per program */
+    struct ubpf_vm *ubpfvm = ubpf_create();
+    if (!ubpfvm) {
+            VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
+            return false;
+    }
+    program->vm = ubpfvm;
 
-	// TODO TNO free mdg again ?
-	//ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
 
-	return 0;
+    /*
+    int i;
+    uint8_t * prg_ptr = program->program;
+    for (i = 0; i < program->len; i++)
+    {
+        VLOG_WARN_RL(LOG_MODULE, &rl, "PROG: (%u).", *prg_ptr );
+        prg_ptr++;
+    } */
+
+    VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF Program size: (%u).", msg->prog_len );
+
+    // TODO TNO free mdg again ?
+    //ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+
+    return 0;
 }
 
 

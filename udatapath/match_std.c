@@ -166,8 +166,8 @@ any_match(struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt){
 }
 
 bool exec_bpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt) {
-	uint64_t res;
-	uint32_t fullsize = sizeof(pkt->in_port) + pkt->packet->buffer->size;
+    uint64_t res;
+    uint32_t fullsize = sizeof(pkt->in_port) + pkt->packet->buffer->size;
     //struct bpf_insn *instructions = (struct bpf_insn *) ofl_match_tlv->value;
 
     uint32_t * prg_id = (uint32_t *) ofl_match_tlv->value;
@@ -192,12 +192,12 @@ bool exec_bpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct 
 bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct packet_ext *pkt) {
 
 
-	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF!");
+    VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF!");
 
     struct ubpf_vm *vm = ubpf_create();
     if (!vm) {
-    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
-    	return false;
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
+        return false;
     }
 
     uint32_t * prg_id = (uint32_t *) ofl_match_tlv->value;
@@ -217,8 +217,8 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct
 
     if (rv < 0)
     {
-    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
-    	free(errmsg);
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
+        free(errmsg);
         ubpf_destroy(vm);
         return false;
 
@@ -232,24 +232,24 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct
     VLOG_WARN_RL(LOG_MODULE, &rl, "end of eBPF!");
 
     if (ret > 0) {
-    	return true;
+        return true;
     }
     return false;
 } */
 
 bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32_t prognum, uint64_t result, uint64_t mask, struct ofsoft_bpf *param)
 {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Execute eBPF program.");
+    VLOG_WARN_RL(LOG_MODULE, &rl, "Execute eBPF program.");
 
-	//TODO TNO: add this to the bpf_program struct and create the VM upon addition of the program instead of per packet !
+    //TODO TNO: add this to the bpf_program struct and create the VM upon addition of the program instead of per packet !
     //struct ubpf_vm *vm = ubpf_create();
     /*if (!vm) {
-    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
-    	return false;
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
+        return false;
     }*/
 
-	/* Get VM pointer from struct */
-	struct ubpf_vm *vm = dp->bpf_programs[prognum].vm;
+    /* Get VM pointer from struct */
+    struct ubpf_vm *vm = dp->bpf_programs[prognum].vm;
 
     struct bpf_insn *instructions = (struct bpf_insn *) (dp->bpf_programs[prognum].program);
     uint32_t prg_len = dp->bpf_programs[prognum].len;
@@ -264,8 +264,8 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32
 
     if (rv < 0)
     {
-    	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
-    	free(errmsg);
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
+        free(errmsg);
         //ubpf_destroy(vm);
         return false;
 
@@ -333,53 +333,53 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
         }
 
         if (f->header==OXM_OF_EXEC_BPF) {
-        	struct ofsoft_bpf * bpf_param = NULL;
+            struct ofsoft_bpf * bpf_param = NULL;
 
-        	// Convenience pointer (should make a struct for this)
-        	uint32_t * prog_num_ptr = (f->value);
-        	uint64_t * prog_res_ptr = (f->value + sizeof(uint32_t));
-        	uint64_t * prog_mask_ptr = (f->value + sizeof(uint32_t) + sizeof(uint64_t));
-        	uint8_t * param_len_ptr = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t));
-        	uint8_t * param = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t) + sizeof(uint8_t));
+            // Convenience pointer (should make a struct for this)
+            uint32_t * prog_num_ptr = (f->value);
+            uint64_t * prog_res_ptr = (f->value + sizeof(uint32_t));
+            uint64_t * prog_mask_ptr = (f->value + sizeof(uint32_t) + sizeof(uint64_t));
+            uint8_t * param_len_ptr = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t));
+            uint8_t * param = (f->value + sizeof(uint32_t) + 2*sizeof(uint64_t) + sizeof(uint8_t));
 
-        	bpf_param = (struct ofsoft_bpf *) malloc(sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size);
+            bpf_param = (struct ofsoft_bpf *) malloc(sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size);
 
-        	uint8_t * ptr = bpf_param;
-        	int i = 0;
-        	for (i = 0; i < ( sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size ) ; i++ )
-        	{
-        		*ptr = 0xFE;
-        		ptr++;
-        	}
-
-
-        	//Metadata
-        	memcpy(&bpf_param->in_port, &fullpacket->in_port, sizeof(uint32_t));
-        	memcpy(&bpf_param->table_id, &fullpacket->table_id, sizeof(uint8_t));
-
-        	//Parameter length
-        	memcpy(&bpf_param->param_len, param_len_ptr, sizeof(uint8_t));
-
-        	//Copy parameters just after the struct
-        	uint8_t * param_offset = (uint8_t* )bpf_param + sizeof(struct ofsoft_bpf);
-        	memcpy(param_offset, param, *param_len_ptr);
-
-        	//Copy the pointer
-        	//memcpy(&bpf_param->param, &param_offset, sizeof(uint8_t *));
-        	bpf_param->param = (uint8_t *)bpf_param + sizeof(struct ofsoft_bpf);
+            uint8_t * ptr = bpf_param;
+            int i = 0;
+            for (i = 0; i < ( sizeof(struct ofsoft_bpf) + *param_len_ptr + fullpacket->buffer->size ) ; i++ )
+            {
+                *ptr = 0xFE;
+                ptr++;
+            }
 
 
-        	//Copy packet length
-        	memcpy(&bpf_param->packet_len,&fullpacket->buffer->size, sizeof(size_t));
+            //Metadata
+            memcpy(&bpf_param->in_port, &fullpacket->in_port, sizeof(uint32_t));
+            memcpy(&bpf_param->table_id, &fullpacket->table_id, sizeof(uint8_t));
 
-        	//Copy packet afther the parameter
-        	uint8_t * packet_offset = (uint8_t* )bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
-        	memcpy(packet_offset, fullpacket->buffer->data, fullpacket->buffer->size);
+            //Parameter length
+            memcpy(&bpf_param->param_len, param_len_ptr, sizeof(uint8_t));
 
-        	//Copy packet offset pointer
-        	//memcpy(&bpf_param->packet, &packet_offset, sizeof(uint8_t* ));
+            //Copy parameters just after the struct
+            uint8_t * param_offset = (uint8_t* )bpf_param + sizeof(struct ofsoft_bpf);
+            memcpy(param_offset, param, *param_len_ptr);
 
-        	bpf_param->packet = (uint8_t *)bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
+            //Copy the pointer
+            //memcpy(&bpf_param->param, &param_offset, sizeof(uint8_t *));
+            bpf_param->param = (uint8_t *)bpf_param + sizeof(struct ofsoft_bpf);
+
+
+            //Copy packet length
+            memcpy(&bpf_param->packet_len,&fullpacket->buffer->size, sizeof(size_t));
+
+            //Copy packet afther the parameter
+            uint8_t * packet_offset = (uint8_t* )bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
+            memcpy(packet_offset, fullpacket->buffer->data, fullpacket->buffer->size);
+
+            //Copy packet offset pointer
+            //memcpy(&bpf_param->packet, &packet_offset, sizeof(uint8_t* ));
+
+            bpf_param->packet = (uint8_t *)bpf_param + sizeof(struct ofsoft_bpf) + *param_len_ptr;
 
             match_result = exec_ebpf(table->dp,f,*prog_num_ptr,*prog_res_ptr,*prog_mask_ptr, bpf_param);
 
@@ -402,12 +402,12 @@ packet_match(struct flow_table * table, struct ofl_match *flow_match, struct pac
         /* Lookup the packet header */
         packet_f = oxm_match_lookup(packet_header, packet);
         if (!packet_f) {
-        	if (f->header==OXM_OF_VLAN_VID &&
-        			*((uint16_t *) f->value)==OFPVID_NONE) {
-        		/* There is no VLAN tag, as required */
-        		continue;
-        	}
-        	return false;
+            if (f->header==OXM_OF_VLAN_VID &&
+                    *((uint16_t *) f->value)==OFPVID_NONE) {
+                /* There is no VLAN tag, as required */
+                continue;
+            }
+            return false;
         }
 
         /* Compare the flow and packet field values, considering the mask, if any */
@@ -591,39 +591,39 @@ strict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  */
 static inline bool match_ebpf_flow(uint8_t *a, uint8_t *b)
 {
-	uint8_t *a_prog_id		= a;
-	uint8_t *a_result 		= a_prog_id + sizeof(uint32_t);
-	uint8_t *a_mask 		= a_result + sizeof(uint64_t);
-	uint8_t *a_param_len 	= a_mask + sizeof(uint64_t);
-	uint8_t *a_param 		= a_param_len + sizeof(uint8_t);
+    uint8_t *a_prog_id        = a;
+    uint8_t *a_result         = a_prog_id + sizeof(uint32_t);
+    uint8_t *a_mask         = a_result + sizeof(uint64_t);
+    uint8_t *a_param_len     = a_mask + sizeof(uint64_t);
+    uint8_t *a_param         = a_param_len + sizeof(uint8_t);
 
-	uint8_t *b_prog_id		= b;
-	uint8_t *b_result 		= b_prog_id + sizeof(uint32_t);
-	uint8_t *b_mask 		= b_result + sizeof(uint64_t);
-	uint8_t *b_param_len 	= b_mask + sizeof(uint64_t);
-	uint8_t *b_param 		= b_param_len + sizeof(uint8_t);
+    uint8_t *b_prog_id        = b;
+    uint8_t *b_result         = b_prog_id + sizeof(uint32_t);
+    uint8_t *b_mask         = b_result + sizeof(uint64_t);
+    uint8_t *b_param_len     = b_mask + sizeof(uint64_t);
+    uint8_t *b_param         = b_param_len + sizeof(uint8_t);
 
 
-	if ( match_32(a_prog_id, b_prog_id) && match_64(a_result, b_result) && match_64(a_mask, b_mask) ) {
-		// If all this stuff matches then do the param compare!
+    if ( match_32(a_prog_id, b_prog_id) && match_64(a_result, b_result) && match_64(a_mask, b_mask) ) {
+        // If all this stuff matches then do the param compare!
 
-		// First do param_len compare.
-		if (match_8(a_param_len, b_param_len)) {
-			// Equal!
-			// This is a slow function so only do as last resort!
-			if (strncmp((const char *)a_param, (const char *)b_param, *a_param) == 0) {
-				return true;
-			} else {
-				// Not equal! So return false.
-				return false;
-			}
-		} else {
-			// Not equal! So return false.
-			return false;
-		}
-	} else {
-		return false;
-	}
+        // First do param_len compare.
+        if (match_8(a_param_len, b_param_len)) {
+            // Equal!
+            // This is a slow function so only do as last resort!
+            if (strncmp((const char *)a_param, (const char *)b_param, *a_param) == 0) {
+                return true;
+            } else {
+                // Not equal! So return false.
+                return false;
+            }
+        } else {
+            // Not equal! So return false.
+            return false;
+        }
+    } else {
+        return false;
+    }
 }
 
 //TODO TNO: update for ebpf
@@ -743,12 +743,12 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
                 }
                 break;
             case 248: // TODO TNO: FIX This
-            	if(!match_ebpf_flow(flow_mod_val, flow_entry_val)) {
-            		return false;
-            	}
+                if(!match_ebpf_flow(flow_mod_val, flow_entry_val)) {
+                    return false;
+                }
             default:
                 /* Should never happen */
-            	VLOG_WARN_RL(LOG_MODULE, &rl, "Default switch case reached! Should not happen!");
+                VLOG_WARN_RL(LOG_MODULE, &rl, "Default switch case reached! Should not happen!");
                 break;
         } /* switch (field_len) */
 
@@ -970,8 +970,8 @@ incompatible_32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 
 static inline bool
 incompatible_48(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return (incompatible_32(a, b, am, bm) ||
-		    incompatible_16(a+4, b+4, am+4, bm+4));
+    return (incompatible_32(a, b, am, bm) ||
+            incompatible_16(a+4, b+4, am+4, bm+4));
 }
 
 static inline bool
@@ -986,8 +986,8 @@ incompatible_64(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 
 static inline bool
 incompatible_128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return (incompatible_64(a, b, am, bm) ||
-			incompatible_64(a+8, b+8, am+8, bm+8));
+    return (incompatible_64(a, b, am, bm) ||
+            incompatible_64(a+8, b+8, am+8, bm+8));
 }
 
 
@@ -999,10 +999,10 @@ incompatible_128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 bool
 match_std_overlap(struct ofl_match *a, struct ofl_match *b)
 {
-	uint64_t all_mask[2] = {0, 0};
+    uint64_t all_mask[2] = {0, 0};
     struct ofl_match_tlv *f_a;
     struct ofl_match_tlv *f_b;
-    int	header, header_m;
+    int    header, header_m;
     int field_len;
     uint8_t *val_a, *mask_a;
     uint8_t *val_b, *mask_b;
@@ -1012,60 +1012,60 @@ match_std_overlap(struct ofl_match *a, struct ofl_match *b)
     {
         field_len = OXM_LENGTH(f_a->header);
         val_a = f_a->value;
-    	if (OXM_HASMASK(f_a->header)) {
-    		field_len /= 2;
-        	header = (f_a->header & 0xfffffe00) | field_len;
-        	header_m = f_a->header;
-        	mask_a = f_a->value + field_len;
-    	} else {
-    		header = f_a->header;
-    		header_m = (f_a->header & 0xfffffe00) | 0x100 | (field_len << 1);
-    		/* Set a dummy mask with all bits set to 0 (valid) */
-        	mask_a = (uint8_t *) all_mask;
-    	}
+        if (OXM_HASMASK(f_a->header)) {
+            field_len /= 2;
+            header = (f_a->header & 0xfffffe00) | field_len;
+            header_m = f_a->header;
+            mask_a = f_a->value + field_len;
+        } else {
+            header = f_a->header;
+            header_m = (f_a->header & 0xfffffe00) | 0x100 | (field_len << 1);
+            /* Set a dummy mask with all bits set to 0 (valid) */
+            mask_a = (uint8_t *) all_mask;
+        }
 
         /* Check presence of corresponding match field in flow entry b
          * Need to check for both masked and non-masked field */
-    	f_b = oxm_match_lookup(header, b);
-    	if (!f_b) f_b = oxm_match_lookup(header_m, b);
+        f_b = oxm_match_lookup(header, b);
+        if (!f_b) f_b = oxm_match_lookup(header_m, b);
 
         if (f_b) {
-        	val_b = f_b->value;
-        	if (OXM_HASMASK(f_b->header)) {
-            	mask_b = f_b->value + field_len;
-        	} else {
-        		/* Set a dummy mask with all bits set to 0 (valid) */
-            	mask_b = (uint8_t *) all_mask;
-        	}
+            val_b = f_b->value;
+            if (OXM_HASMASK(f_b->header)) {
+                mask_b = f_b->value + field_len;
+            } else {
+                /* Set a dummy mask with all bits set to 0 (valid) */
+                mask_b = (uint8_t *) all_mask;
+            }
             switch (field_len) {
                 case 1:
-                	if (incompatible_8(val_a, val_b, mask_a, mask_b)) {
-                		return false;
+                    if (incompatible_8(val_a, val_b, mask_a, mask_b)) {
+                        return false;
                     }
                     break;
                 case 2:
-                	if (incompatible_16(val_a, val_b, mask_a, mask_b)) {
-                		return false;
+                    if (incompatible_16(val_a, val_b, mask_a, mask_b)) {
+                        return false;
                     }
                     break;
                 case 4:
-                	if (incompatible_32(val_a, val_b, mask_a, mask_b)) {
-                		return false;
+                    if (incompatible_32(val_a, val_b, mask_a, mask_b)) {
+                        return false;
                     }
                     break;
                 case 6:
-                	if (incompatible_48(val_a, val_b, mask_a, mask_b)) {
-                		return false;
+                    if (incompatible_48(val_a, val_b, mask_a, mask_b)) {
+                        return false;
                     }
                     break;
                 case 8:
-                	if (incompatible_64(val_a, val_b, mask_a, mask_b)) {
-                		return false;
+                    if (incompatible_64(val_a, val_b, mask_a, mask_b)) {
+                        return false;
                     }
                     break;
                 case 16:
-                	if (incompatible_128(val_a, val_b, mask_a, mask_b)) {
-                		return false;
+                    if (incompatible_128(val_a, val_b, mask_a, mask_b)) {
+                        return false;
                     }
                     break;
                 default:

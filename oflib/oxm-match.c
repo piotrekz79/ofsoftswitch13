@@ -191,7 +191,7 @@ oxm_match_lookup(uint32_t header, const struct ofl_match *omt)
     struct ofl_match_tlv *f;
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node, hash_int(header, 0),
-    					    &omt->match_fields) {
+                            &omt->match_fields) {
         if (f->header == header) {
             return f;
         }
@@ -302,10 +302,8 @@ static uint8_t* get_oxm_value(struct ofl_match *m, uint32_t header){
      return NULL;
 }
 
-//TODO TNO: OUR BUG LIVES HEERE !
 static int
-parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
-                const void *value, const void *mask){
+parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,const void *value, const void *mask){
     switch (f->index) {
         case OFI_OXM_OF_IN_PORT: {
             uint32_t* in_port = (uint32_t*) value;
@@ -551,28 +549,29 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         }
         case OFI_OXM_OF_EXEC_BPF:{
 
-        	VLOG_WARN_RL(LOG_MODULE, &rl, "GOT OFI_OXM_OF_EXEC_BPF");
+            VLOG_WARN_RL(LOG_MODULE, &rl, "GOT OFI_OXM_OF_EXEC_BPF");
 
-        	uint32_t * prog_num_ptr = value;
-        	uint64_t * prog_res_ptr = (value + sizeof(uint32_t) );
-        	uint64_t * prog_mask_ptr = (value + sizeof(uint32_t) + sizeof(uint64_t) );
-        	uint8_t * param_len_ptr	= (value + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) );
-        	uint8_t * param = (value + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint8_t));
+            uint32_t * prog_num_ptr = value;
+            uint64_t * prog_res_ptr = (value + sizeof(uint32_t) );
+            uint64_t * prog_mask_ptr = (value + sizeof(uint32_t) + sizeof(uint64_t) );
+            uint8_t * param_len_ptr    = (value + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) );
+            uint8_t * param = (value + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint8_t));
 
-        	uint32_t prog_num = ntohl(*prog_num_ptr);
-        	uint64_t prog_res = ntoh64(*prog_res_ptr);
-        	uint64_t prog_mask = ntoh64(*prog_mask_ptr);
-        	uint8_t param_len = *param_len_ptr;
+            uint32_t prog_num = ntohl(*prog_num_ptr);
+            uint64_t prog_res = ntoh64(*prog_res_ptr);
+            uint64_t prog_mask = ntoh64(*prog_mask_ptr);
+            uint8_t param_len = *param_len_ptr;
 
-        	ofl_structs_match_put_execBpf(match, f->header,
-        					prog_num,
-        					prog_res,
-        					prog_mask,
-        					param_len,
-        					param);
+            VLOG_WARN_RL(LOG_MODULE, &rl, "id: %i(%i), param_len: %i", prog_num, prog_num_ptr, param_len);
+            //VLOG_WARN_RL(LOG_MODULE, &rl, "id: %i, param_len: %i", prog_num, param_len);
 
+            ofl_structs_match_put_execBpf(match, f->header,
+                            prog_num,
+                            prog_res,
+                            prog_mask,
+                            param_len,
+                            param);
 
-        	//ofl_structs_match_put20(match, f->header, value);
 
             return 0;
         }
@@ -586,8 +585,6 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 
 
 /* oxm_pull_match() and helpers. */
-
-
 /* Puts the match in a hash_map structure */
 int
 oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
@@ -757,10 +754,10 @@ oxm_put_248(struct ofpbuf *buf, uint32_t header, uint8_t* value)
 
 static void oxm_put_bpf(struct ofpbuf *buf, uint32_t header, uint32_t prog_num, uint64_t value, uint64_t mask)
 {
-	oxm_put_header(buf, header);
-	ofpbuf_put(buf, &prog_num, sizeof prog_num);
-	ofpbuf_put(buf, &value, sizeof value);
-	ofpbuf_put(buf, &mask, sizeof mask);
+    oxm_put_header(buf, header);
+    ofpbuf_put(buf, &prog_num, sizeof prog_num);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
 }
 
 
@@ -927,30 +924,30 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                has_mask = true;
             }
             switch (length){
-            	case (248): {
+                case (248): {
                     uint8_t value[248];
                     memcpy(value, oft->value, 248);
                     oxm_put_248(buf, oft->header, value);
                     break;
-            	}
-            	case (20):{
-            		//TODO TNO: fix this for conversion to network order
-            		// uint32_t uint64_t uint64_t
+                }
+                case (20):{
+                    //TODO TNO: fix this for conversion to network order
+                    // uint32_t uint64_t uint64_t
 
-            		//uint8_t value[20];
-            		//memcpy(value, oft->value, 20);
-            		//oxm_put_20(buf,oft->header,value);
-            		uint32_t prog_num;
-            		uint64_t prog_res;
-            		uint64_t prog_mask;
+                    //uint8_t value[20];
+                    //memcpy(value, oft->value, 20);
+                    //oxm_put_20(buf,oft->header,value);
+                    uint32_t prog_num;
+                    uint64_t prog_res;
+                    uint64_t prog_mask;
 
-            		memcpy(&prog_num, oft->value,sizeof(prog_num));
-            		memcpy(&prog_res, oft->value + sizeof(prog_num),sizeof(prog_res));
-            		memcpy(&prog_mask, oft->value + sizeof(prog_num) + sizeof(prog_res),sizeof(prog_mask));
+                    memcpy(&prog_num, oft->value,sizeof(prog_num));
+                    memcpy(&prog_res, oft->value + sizeof(prog_num),sizeof(prog_res));
+                    memcpy(&prog_mask, oft->value + sizeof(prog_num) + sizeof(prog_res),sizeof(prog_mask));
 
-            		oxm_put_bpf(buf,oft->header,htonl(prog_num),hton64(prog_res),hton64(prog_mask));
-            		break;
-            	}
+                    oxm_put_bpf(buf,oft->header,htonl(prog_num),hton64(prog_res),hton64(prog_mask));
+                    break;
+                }
                 case (sizeof(uint8_t)):{
                     uint8_t value;
                     memcpy(&value, oft->value,sizeof(uint8_t));
@@ -992,21 +989,21 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                 case (sizeof(uint32_t)):{
                     uint32_t value;
                     memcpy(&value, oft->value,sizeof(uint32_t));
-					if(!has_mask)
-						if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
-							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
-							oxm_put_32(buf,oft->header, value);
-						else
-							oxm_put_32(buf,oft->header, htonl(value));
+                    if(!has_mask)
+                        if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
+                            ||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
+                            oxm_put_32(buf,oft->header, value);
+                        else
+                            oxm_put_32(buf,oft->header, htonl(value));
                     else {
                          uint32_t mask;
                          memcpy(&mask,oft->value + length ,sizeof(uint32_t));
-						 if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
-							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W){
+                         if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
+                            ||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W){
                             oxm_put_32w(buf, oft->header, value, mask);
                             }
-						 else {
-							oxm_put_32w(buf, oft->header, htonl(value),htonl(mask));
+                         else {
+                            oxm_put_32w(buf, oft->header, htonl(value),htonl(mask));
                          }
                     }
                       break;

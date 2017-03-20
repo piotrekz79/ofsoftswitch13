@@ -32,6 +32,10 @@
 #include "lib/hash.h"
 #include "oxm-match.h"
 
+#define LOG_MODULE VLM_oxm_match
+#include "vlog.h"
+static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 20);
+
 void
 ofl_structs_match_init(struct ofl_match *match){
 
@@ -155,6 +159,7 @@ ofl_structs_match_put248(struct ofl_match *match, uint32_t header, char * value)
     m->header = header;
     m->value = malloc(len);
     memcpy(m->value, value, len);
+
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
 
@@ -165,27 +170,41 @@ ofl_structs_match_put_execBpf(struct ofl_match *match, uint32_t header, uint32_t
 {
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint32_t) + 2*sizeof(uint64_t) +sizeof(uint8_t) + param_len;
+
+    VLOG_WARN_RL(LOG_MODULE, &rl, "Executing: ofl_structs_match_put_execBpf()...");
+
     if (param_len > 228)
     {
     	return;
     }
 
-
     //TODO: TNO Update
-
-
     m->header = header;
     m->value = malloc(len);
+
+    // prog_num size sizeof(uint32_t)
+    //VLOG_WARN_RL(LOG_MODULE, &rl, "prog_num: %i", prog_num);
     memcpy(m->value, &prog_num, sizeof(uint32_t));
+    //VLOG_WARN_RL(LOG_MODULE, &rl, "program id: %i(%i)", *(uint32_t *)m->value, m->value);
+
+    // Result size uint8_t
     memcpy(m->value + sizeof(uint32_t), &result, sizeof(uint64_t));
+
+    // Mask size uint8_t
     memcpy(m->value + sizeof(uint64_t) + sizeof(uint32_t), &mask, sizeof(uint64_t));
 
-    memcpy(m->value + 2* sizeof(uint64_t) + sizeof(uint32_t), &param_len, sizeof(uint8_t)); // cpy param_len
+    // Param_len size uint8_t
+    uint8_t * param_len_ptr = (m->value + 2* sizeof(uint64_t) + sizeof(uint32_t));
+    memcpy(param_len_ptr, &param_len, sizeof(uint8_t)); // cpy param_len
+    //VLOG_WARN_RL(LOG_MODULE, &rl, "param_len: %i(%i)", *param_len_ptr, param_len_ptr);
+
     memcpy(m->value + 2* sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint8_t), param, param_len); // cpy param
+    //VLOG_WARN_RL(LOG_MODULE, &rl, "param: %s(%i)", (param_len_ptr+sizeof(uint8_t)), param_len_ptr);
 
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0) );
+
+    // Make sure the length is defined somewhere.
     match->header.length += len + 4;
-
 }
 
 void

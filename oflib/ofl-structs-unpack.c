@@ -1144,7 +1144,10 @@ ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, s
 
      int error = 0;
      struct ofpbuf *b = ofpbuf_new(0);
+
+     // Here a net ofl_match structure is allocated on the heap.
      struct ofl_match *m = (struct ofl_match *) malloc(sizeof(struct ofl_match));
+
     *len -= ROUND_UP(ntohs(src->length),8);
      if(ntohs(src->length) > sizeof(struct ofp_match)){
          ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
