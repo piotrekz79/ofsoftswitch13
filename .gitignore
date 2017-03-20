@@ -125,5 +125,6 @@ utilities/ofp-kill.o
 utilities/ofp-parse-leaks
 utilities/vlogconf.o
 
+*.o
 *~
 .*.swp

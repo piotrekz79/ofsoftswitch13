@@ -239,14 +239,17 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, struct
 
 bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32_t prognum, uint64_t result, uint64_t mask, struct ofsoft_bpf *param)
 {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF!");
+	VLOG_WARN_RL(LOG_MODULE, &rl, "Execute eBPF program.");
 
 	//TODO TNO: add this to the bpf_program struct and create the VM upon addition of the program instead of per packet !
-    struct ubpf_vm *vm = ubpf_create();
-    if (!vm) {
+    //struct ubpf_vm *vm = ubpf_create();
+    /*if (!vm) {
     	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
     	return false;
-    }
+    }*/
+
+	/* Get VM pointer from struct */
+	struct ubpf_vm *vm = dp->bpf_programs[prognum].vm;
 
     struct bpf_insn *instructions = (struct bpf_insn *) (dp->bpf_programs[prognum].program);
     uint32_t prg_len = dp->bpf_programs[prognum].len;
@@ -263,7 +266,7 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32
     {
     	VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to load eBPF program (%s)", errmsg);
     	free(errmsg);
-        ubpf_destroy(vm);
+        //ubpf_destroy(vm);
         return false;
 
     }
@@ -273,7 +276,7 @@ bool exec_ebpf(struct datapath * dp, struct ofl_match_tlv *ofl_match_tlv, uint32
     size_t size =  sizeof(struct ofsoft_bpf) + param->param_len + param->packet_len;
     ret = ubpf_exec(vm, param, size);
 
-    ubpf_destroy(vm);
+    //ubpf_destroy(vm);
 
     VLOG_WARN_RL(LOG_MODULE, &rl, "EBPF return val: \"0x%"PRIx64"\"", ret);
 

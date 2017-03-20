@@ -66,6 +66,9 @@
 #include "stp.h"
 #include "vconn.h"
 
+/* Add the ubpf stuff */
+#include "../ubpf/vm/inc/ubpf.h"
+
 #define LOG_MODULE VLM_dp
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
@@ -277,9 +280,11 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
 
                 struct sender sender = {.remote = r, .conn_id = conn_id};
 
+                // This functions does the saving of the received flow in msg struct.
                 error = ofl_msg_unpack(buffer->data, buffer->size, &msg, &(sender.xid), dp->exp);
 
                 if (!error) {
+                    /* This function then adds the flow to the flow table. */
                     error = handle_control_msg(dp, msg, &sender);
 
                     if (error) {
@@ -684,9 +689,7 @@ dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
 }
 
 /* TNO extenstions */
-ofl_err
-dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg,
-                                            const struct sender *sender)
+ofl_err dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg, const struct sender *sender)
 {
 	/*
 
@@ -697,9 +700,7 @@ dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg,
             r->role = OFPCR_ROLE_SLAVE;
         }
     } */
-
-	VLOG_WARN_RL(LOG_MODULE, &rl, "In datapath add adding: (%u).", msg->prog_id);
-
+	VLOG_WARN_RL(LOG_MODULE, &rl, "Save eBPF program to datapath, program id=(%u).", msg->prog_id);
 
 	if (msg->prog_id < 0 || msg->prog_id > 255)
 	{
@@ -708,11 +709,19 @@ dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg,
 	}
 
 
-	//TODO TNO change this for malloc & copy
+	//TODO TNO change this for malloc & copy! WHY would you do that? because msg needs to be freed?
 	struct dp_bpf_program * program = &dp->bpf_programs[msg->prog_id];
 	program->program = msg->program;
 	program->number = msg->prog_id;
 	program->len = msg->prog_len;
+
+	/* Create a pointer to a uBPF VM, this per program */
+	struct ubpf_vm *ubpfvm = ubpf_create();
+	if (!ubpfvm) {
+	        VLOG_WARN_RL(LOG_MODULE, &rl, "Failed to create eBPF vm");
+	        return false;
+	}
+	program->vm = ubpfvm;
 
 
 	/*
@@ -724,8 +733,9 @@ dp_handle_put_bpf(struct datapath *dp, struct ofl_exp_tno_msg_bpf *msg,
 		prg_ptr++;
 	} */
 
-	VLOG_WARN_RL(LOG_MODULE, &rl, "PROG length: (%u).", msg->prog_len );
+	VLOG_WARN_RL(LOG_MODULE, &rl, "eBPF Program size: (%u).", msg->prog_len );
 
+	// TODO TNO free mdg again ?
 	//ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
 
 	return 0;

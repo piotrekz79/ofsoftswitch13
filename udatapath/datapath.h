@@ -66,6 +66,7 @@ struct sender;
  ****************************************************************************/
 struct dp_bpf_program {
 	uint32_t number;
+	struct ubpf_vm *vm;  /* Also ad a pointer to a eBPF program VM. */
 	uint32_t len;
 	uint8_t * program;
 };
