@@ -97,27 +97,29 @@ dp_exp_message(struct datapath *dp,
             break;
         }
        case (TNO_VENDOR_ID): {
-        	struct ofl_exp_tno_msg_header *exp = (struct ofl_exp_tno_msg_header *)msg;
+            struct ofl_exp_tno_msg_header *exp = (struct ofl_exp_tno_msg_header *)msg;
 
-        	switch(exp->type) {
-				case (TNO_PUT_BPF): {
-					VLOG_WARN_RL(LOG_MODULE, &rl, "TNO PUT BPF !");
-					return dp_handle_put_bpf(dp, (struct ofl_exp_tno_msg_bgp *) msg, sender);
-				}
-				case (TNO_GET_BPF): {
-					VLOG_WARN_RL(LOG_MODULE, &rl, "TNO GET BPF !");
-					return 0;
-				}
-				case (TNO_DEL_BPF): {
-					VLOG_WARN_RL(LOG_MODULE, &rl, "TNO DEL BPF !");
-					return 0;
-				}
-				default: {
-					VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown TNO message type (%u).", exp->type);
-					return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
-				}
-        	}
-        	break;
+            switch(exp->type) {
+                case (TNO_PUT_BPF): {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "TNO PUT BPF !");
+
+                    // The msg needs to be freed in this call!
+                    return dp_handle_put_bpf(dp, (struct ofl_exp_tno_msg_bgp *) msg, sender);
+                }
+                case (TNO_GET_BPF): {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "TNO GET BPF !");
+                    return 0;
+                }
+                case (TNO_DEL_BPF): {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "TNO DEL BPF !");
+                    return 0;
+                }
+                default: {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown TNO message type (%u).", exp->type);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                }
+            }
+            break;
 
         }
         default: {

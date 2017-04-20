@@ -139,19 +139,25 @@ ofl_exp_tno_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experi
     return 0;
 }
 
+
+// This function is called from the datapath.c after the program is saved in the
+// dp program list..
 int
-ofl_exp_tno_msg_free(struct ofl_msg_experimenter *msg) {
+ofl_exp_tno_msg_free(struct ofl_msg_experimenter *msg)
+{
     if (msg->experimenter_id == TNO_VENDOR_ID) {
+
         struct ofl_exp_tno_msg_header *exp = (struct ofl_exp_tno_msg_header *)msg;
         switch (exp->type) {
-    		case (TNO_PUT_BPF): {
-				struct ofl_exp_tno_msg_bpf * bpf_msg = (struct ofl_exp_tno_msg_bpf *)msg;
-    			//free(bpf_msg->program);
-    			break;
-    		}
-    		case (TNO_DEL_BPF):
-    		case (TNO_GET_BPF):
-    		default: {
+            case (TNO_PUT_BPF): {
+                struct ofl_exp_tno_msg_bpf * put_bpf_msg = (struct ofl_exp_tno_msg_bpf *)msg;
+                free(put_bpf_msg->program);
+                OFL_LOG_WARN(LOG_MODULE, "Correct freeing TNO Experimenter message :)");
+                break;
+            }
+            case (TNO_DEL_BPF):
+            case (TNO_GET_BPF):
+            default: {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown TNO Experimenter message.");
             }
         }
